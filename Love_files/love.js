@@ -1,4 +1,4 @@
-(function(window){
+(function(window) {
 
     function random(min, max) {
         return min + Math.floor(Math.random() * (max - min + 1));
@@ -74,18 +74,28 @@
         var color = color || '#FF0000';
 
         this.heart = {
-            point  : point,
-            scale  : scale,
-            color  : color,
-            figure : new Heart(),
+            point: point,
+            scale: scale,
+            color: color,
+            figure: new Heart(),
         }
 
         this.cirle = {
-            point  : point,
-            scale  : scale,
-            color  : color,
-            radius : 5,
+            point: point,
+            scale: scale,
+            color: color,
+            radius: 5,
         }
+        
+        // Store clickable area coordinates
+        this.clickArea = {
+            x1: point.x + 15 * scale,
+            y1: point.y + 15 * scale,
+            x2: point.x + 60 * scale,
+            y2: point.y + 15 * scale,
+            textX: point.x + 23 * scale * 0.75,
+            textY: point.y + 16 * scale * 0.75
+        };
     }
     Seed.prototype = {
         draw: function() {
@@ -94,6 +104,13 @@
         },
         addPosition: function(x, y) {
             this.cirle.point = this.cirle.point.add(new Point(x, y));
+            // Update click area when position changes
+            this.clickArea.x1 += x;
+            this.clickArea.y1 += y;
+            this.clickArea.x2 += x;
+            this.clickArea.y2 += y;
+            this.clickArea.textX += x;
+            this.clickArea.textY += y;
         },
         canMove: function() {
             return this.cirle.point.y < (this.tree.height + 20); 
@@ -108,6 +125,16 @@
         },
         setHeartScale: function(scale) {
             this.heart.scale *= scale;
+            // Update click area when scale changes
+            var point = this.heart.point;
+            this.clickArea = {
+                x1: point.x + 15 * this.heart.scale,
+                y1: point.y + 15 * this.heart.scale,
+                x2: point.x + 60 * this.heart.scale,
+                y2: point.y + 15 * this.heart.scale,
+                textX: point.x + 23 * this.heart.scale * 0.75,
+                textY: point.y + 16 * this.heart.scale * 0.75
+            };
         },
         scale: function(scale) {
             this.clear();
@@ -142,7 +169,7 @@
             ctx.scale(scale, scale);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-    	    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
             ctx.closePath();
             ctx.fill();
             ctx.restore();
@@ -157,13 +184,13 @@
             ctx.translate(point.x, point.y);
             ctx.scale(scale, scale);
             ctx.moveTo(0, 0);
-    	    ctx.lineTo(15, 15);
-    	    ctx.lineTo(60, 15);
+            ctx.lineTo(15, 15);
+            ctx.lineTo(60, 15);
             ctx.stroke();
 
             ctx.moveTo(0, 0);
             ctx.scale(0.75, 0.75);
-            ctx.font = "12px 微软雅黑,Verdana"; //  (ˉ(∞)ˉ)
+            ctx.font = "12px 微软雅黑,Verdana";
             ctx.fillText("click here", 23, 16);
             ctx.restore();
         },
@@ -174,9 +201,11 @@
             ctx.clearRect(point.x - w, point.y - h, 4 * w, 4 * h);
         },
         hover: function(x, y) {
-            var ctx = this.tree.ctx;
-            var pixel = ctx.getImageData(x, y, 1, 1);
-            return pixel.data[3] == 255
+            // Check if click is within the text area
+            return x >= this.clickArea.textX - 20 && 
+                   x <= this.clickArea.textX + 50 && 
+                   y >= this.clickArea.textY - 10 && 
+                   y <= this.clickArea.textY + 10;
         }
     }
 
@@ -201,8 +230,8 @@
             ctx.translate(point.x, point.y);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-    	    ctx.lineTo(len, 0);
-    	    ctx.lineTo(-len, 0);
+            ctx.lineTo(len, 0);
+            ctx.lineTo(-len, 0);
             ctx.stroke();
             ctx.restore();
 
@@ -225,8 +254,42 @@
         this.initFooter();
         this.initBranch();
         this.initBloom();
+        
+        // Setup click handler
+        this.setupClickHandler();
     }
+    
     Tree.prototype = {
+        setupClickHandler: function() {
+            var self = this;
+            this.canvas.addEventListener('click', function(e) {
+                var rect = self.canvas.getBoundingClientRect();
+                var x = e.clientX - rect.left;
+                var y = e.clientY - rect.top;
+                
+                if (self.seed.hover(x, y)) {
+                    if (self.canGrow()) {
+                        self.grow();
+                    } else if (self.canFlower()) {
+                        self.flower(5);
+                    }
+                }
+            });
+            
+            // Add hover effect
+            this.canvas.addEventListener('mousemove', function(e) {
+                var rect = self.canvas.getBoundingClientRect();
+                var x = e.clientX - rect.left;
+                var y = e.clientY - rect.top;
+                
+                if (self.seed.hover(x, y)) {
+                    self.canvas.style.cursor = 'pointer';
+                } else {
+                    self.canvas.style.cursor = 'default';
+                }
+            });
+        },
+
         initSeed: function() {
             var seed = this.opt.seed || {};
             var x = seed.x || this.width / 2;
@@ -282,16 +345,16 @@
 
             ctx.save();
             ctx.putImageData(image, point.x, point.y);
-        	ctx.restore();
+            ctx.restore();
         },
 
         addBranch: function(branch) {
-        	this.branchs.push(branch);
+            this.branchs.push(branch);
         },
 
         addBranchs: function(branchs){
             var s = this, b, p1, p2, p3, r, l, c;
-        	for (var i = 0; i < branchs.length; i++) {
+            for (var i = 0; i < branchs.length; i++) {
                 b = branchs[i];
                 p1 = new Point(b[0], b[1]);
                 p2 = new Point(b[2], b[3]);
@@ -305,9 +368,9 @@
 
         removeBranch: function(branch) {
             var branchs = this.branchs;
-        	for (var i = 0; i < branchs.length; i++) {
-        		if (branchs[i] === branch) {
-        			branchs.splice(i, 1);
+            for (var i = 0; i < branchs.length; i++) {
+                if (branchs[i] === branch) {
+                    branchs.splice(i, 1);
                 }
             }
         },
@@ -317,7 +380,7 @@
         },
         grow: function() {
             var branchs = this.branchs;
-    	    for (var i = 0; i < branchs.length; i++) {
+            for (var i = 0; i < branchs.length; i++) {
                 var branch = branchs[i];
                 if (branch) {
                     branch.grow();
@@ -391,7 +454,7 @@
             ctx.save();
             ctx.clearRect(point.x, point.y, width, height);
             ctx.putImageData(image, i, j);
-        	ctx.restore();
+            ctx.restore();
 
             rec.point = new Point(i, j);
             rec.speed = speed * 0.95;
@@ -451,15 +514,15 @@
             var s = this;
             var ctx = s.tree.ctx;
             ctx.save();
-        	ctx.beginPath();
-        	ctx.fillStyle = 'RGB(0,128,128)';
+            ctx.beginPath();
+            ctx.fillStyle = 'RGB(0,128,128)';
             ctx.shadowColor = '#22b822';
             ctx.shadowBlur = 2;
-        	ctx.moveTo(p.x, p.y);
-        	ctx.arc(p.x, p.y, s.radius, 0, 2 * Math.PI);
-        	ctx.closePath();
-        	ctx.fill();
-        	ctx.restore();
+            ctx.moveTo(p.x, p.y);
+            ctx.arc(p.x, p.y, s.radius, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
         }
     }
 
