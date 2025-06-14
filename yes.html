@@ -6,7 +6,7 @@
     <link rel="icon" type="image/x-icon" href="https://i.loli.net/2021/06/03/lFg2V4WUcmkB98G.png">
     <meta name="language" content="en-US">
     <meta name="title" content="Student Sun">
-    <meta name="describe" content="It’s not easy to collect all this. Your star is my motivation to keep going. PRs are also welcome!">
+    <meta name="describe" content="It's not easy to collect all this. Your star is my motivation to keep going. PRs are also welcome!">
     <link type="text/css" rel="stylesheet" href="./Love_files/default.css">
     <script type="text/javascript" src="./Love_files/jquery.min.js"></script>
     <script type="text/javascript" src="./Love_files/jscex.min.js"></script>
@@ -17,9 +17,162 @@
     <script type="text/javascript" src="./Love_files/jscex-async-powerpack.min.js"></script>
     <script type="text/javascript" src="./Love_files/functions.js" charset="utf-8"></script>
     <script type="text/javascript" src="./Love_files/love.js" charset="utf-8"></script>
+    <style>
+        /* New styles for music popup */
+        .music-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 192, 203, 0.5);
+        }
+        
+        .music-popup.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .music-popup h3 {
+            color: #e91e63;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .music-popup p {
+            color: #555;
+            margin-bottom: 25px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .music-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .music-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .music-btn.yes {
+            background: linear-gradient(45deg, #e91e63, #ff80ab);
+            color: white;
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
+        }
+        
+        .music-btn.no {
+            background: linear-gradient(45deg, #9e9e9e, #e0e0e0);
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .music-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(233, 30, 99, 0.6);
+        }
+        
+        .music-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .music-btn:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+        }
+        
+        .music-btn:hover:before {
+            left: 100%;
+        }
+        
+        .hearts {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        
+        .heart {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23e91e63"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') no-repeat center center;
+            background-size: contain;
+            opacity: 0;
+        }
+        
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(20deg);
+                opacity: 0;
+            }
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Music Popup -->
+    <div class="overlay" id="musicOverlay"></div>
+    <div class="music-popup" id="musicPopup">
+        <div class="hearts" id="heartsContainer"></div>
+        <h3>🎵 A Special Song For You 🎵</h3>
+        <p>Would you like to listen to a beautiful melody while reading this love letter?</p>
+        <div class="music-buttons">
+            <button class="music-btn yes" id="yesBtn">Yes, Please!</button>
+            <button class="music-btn no" id="noBtn">No Thanks</button>
+        </div>
+    </div>
+
     <div id="main">
         <div id="error">Dear, your browser does not support the content about to be displayed. Please switch to Google Chrome (<a href="http://www.google.cn/chrome/intl/zh-CN/landing_chrome.html?hl=zh-CN&brand=CHMI">Chrome</a>) or Firefox (<a href="http://firefox.com.cn/download/">Firefox</a>)~</div>
         <div id="wrap">
@@ -54,9 +207,112 @@
         </div>
     </div>
 
-    <audio preload="auto" autoplay="" id="media" src="love.mpeg" autoplay preload loop="loop"></audio>
+    <audio preload="auto" id="media" src="love.mpeg" loop="loop"></audio>
 
     <script>
+        // Music popup functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const musicPopup = document.getElementById('musicPopup');
+            const musicOverlay = document.getElementById('musicOverlay');
+            const yesBtn = document.getElementById('yesBtn');
+            const noBtn = document.getElementById('noBtn');
+            const media = document.getElementById('media');
+            const heartsContainer = document.getElementById('heartsContainer');
+            
+            // Show popup after a slight delay
+            setTimeout(() => {
+                musicOverlay.classList.add('show');
+                musicPopup.classList.add('show');
+            }, 1000);
+            
+            // Create floating hearts
+            function createHeart(x, y) {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.style.left = x + 'px';
+                heart.style.top = y + 'px';
+                heart.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+                heartsContainer.appendChild(heart);
+                
+                setTimeout(() => {
+                    heart.style.animation = `floatUp ${Math.random() * 2 + 1}s ease-out forwards`;
+                }, 10);
+                
+                setTimeout(() => {
+                    heart.remove();
+                }, 3000);
+            }
+            
+            // Button click handlers
+            yesBtn.addEventListener('click', function(e) {
+                // Create hearts animation
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        createHeart(
+                            Math.random() * musicPopup.offsetWidth,
+                            musicPopup.offsetHeight
+                        );
+                    }, i * 200);
+                }
+                
+                // Play music with fade in
+                media.volume = 0;
+                media.play();
+                const fadeAudio = setInterval(() => {
+                    if (media.volume < 0.8) {
+                        media.volume += 0.05;
+                    } else {
+                        clearInterval(fadeAudio);
+                    }
+                }, 100);
+                
+                // Close popup
+                setTimeout(() => {
+                    musicPopup.classList.remove('show');
+                    musicOverlay.classList.remove('show');
+                }, 1000);
+            });
+            
+            noBtn.addEventListener('click', function(e) {
+                // Create hearts animation (play anyways but don't tell her)
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        createHeart(
+                            Math.random() * musicPopup.offsetWidth,
+                            musicPopup.offsetHeight
+                        );
+                    }, i * 200);
+                }
+                
+                // Play music quietly with fade in
+                media.volume = 0;
+                media.play();
+                const fadeAudio = setInterval(() => {
+                    if (media.volume < 0.3) { // Lower volume for "no" selection
+                        media.volume += 0.02;
+                    } else {
+                        clearInterval(fadeAudio);
+                    }
+                }, 100);
+                
+                // Close popup
+                setTimeout(() => {
+                    musicPopup.classList.remove('show');
+                    musicOverlay.classList.remove('show');
+                }, 1000);
+            });
+            
+            // Create some random hearts in the background occasionally
+            setInterval(() => {
+                if (musicPopup.classList.contains('show')) {
+                    createHeart(
+                        Math.random() * musicPopup.offsetWidth,
+                        musicPopup.offsetHeight
+                    );
+                }
+            }, 800);
+        });
+
         (function () {
             var canvas = $('#canvas');
 
